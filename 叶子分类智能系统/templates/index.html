@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MobileNetV2轻量化叶子分类识别系统</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: "Microsoft Yahei", sans-serif;
+            margin-top: 40px;
+            background: linear-gradient(135deg, #f0f7ff 0%, #f8f9fa 100%);
+            color: #222222;
+        }
+        .upload-box {
+            border: 2px dashed #666;
+            width: 320px;
+            height: 200px;
+            margin: 20px auto;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .upload-box:hover {
+            background-color: #e8f2ff;
+            border-color: #2478ff;
+        }
+        #file-input {
+            display: none;
+        }
+        #preview-img {
+            max-width: 300px;
+            max-height: 180px;
+            display: none;
+            position: absolute;
+        }
+        #camera-view {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #shoot-canvas {
+            display: none;
+        }
+        .tip-text {
+            display: block;
+            position: absolute;
+        }
+        .camera-btn-group {
+            margin: 10px 0;
+        }
+        .camera-btn {
+            background: #348eda;
+            color: #fff;
+            margin: 0 8px;
+        }
+        .shoot-btn {
+            background: #e64340;
+            color: #fff;
+            display: none;
+        }
+        .btn-group {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 24px;
+            font-size: 17px;
+            cursor: pointer;
+            margin: 0 12px;
+            border: none;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+        }
+        #predictBtn {
+            border: none;
+            background: linear-gradient(90deg, #42b983, #36a873);
+            color: white;
+        }
+        #predictBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 14px rgba(66, 185, 131, 0.3);
+        }
+        #predictBtn:disabled {
+            background: #a8e0c4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        #clearBtn {
+            border: 1px solid #ccd6e0;
+            background: #ffffff;
+            color: #222222;
+        }
+        #clearBtn:hover {
+            transform: translateY(-2px);
+            border-color: #42b983;
+            color: #36a873;
+            box-shadow: 0 5px 14px rgba(0, 0, 0, 0.08);
+        }
+        button:disabled {
+            background: #99bfff;
+            cursor: not-allowed;
+        }
+        .info-area {
+            width: 800px;
+            margin: 40px auto 20px;
+            text-align: left;
+            font-size: 28px;
+            background: #ffffff;
+            padding: 30px 40px;
+            border-radius: 14px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+        .info-row {
+            display: flex;
+            align-items: center;
+            margin: 26px 0;
+        }
+        .info-label {
+            width: 200px;
+            font-weight: 500;
+            color: #1a365d;
+        }
+        .info-input {
+            flex: 1;
+            height: 45px;
+            font-size: 26px;
+            padding: 4px 12px;
+            border: 1px solid #c5d8f0;
+            border-radius: 6px;
+        }
+        .info-text {
+            flex: 1;
+            border-bottom: 1px solid #999;
+            padding-bottom: 4px;
+            color: #004099;
+            font-weight: 500;
+        }
+        .result-card {
+            width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 14px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            display: none;
+        }
+        .result-title {
+            font-size: 30px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+        .three-col-wrap {
+            display: flex;
+            gap: 20px;
+        }
+        .col-item {
+            flex: 1;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+        }
+        .col-img {
+            width: 100%;
+            height: 160px;
+            object-fit: contain;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            background: #f0f4f8;
+            border:1px dashed #ccc;
+            min-height:160px;
+        }
+        .col-name {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+        .col-conf {
+            font-size: 22px;
+            color: #2b6cb0;
+        }
+        .batch-block {
+            width: 800px;
+            margin: 40px auto;
+            background: #fff;
+            padding:25px 30px;
+            border-radius:14px;
+            box-shadow:0 4px 16px rgba(0,0,0,0.08);
+            text-align:left;
+        }
+        .batch-title{
+            font-size:24px;
+            font-weight:bold;
+            margin-bottom:15px;
+            color:#1a365d;
+        }
+        #batchUpload{
+            margin:10px 0;
+        }
+        #batchResultBox{
+            margin-top:18px;
+            display:none;
+        }
+        #batchResultList{
+            max-height:360px;
+            overflow-y:auto;
+            border:1px solid #eee;
+            padding:12px;
+        }
+        .batch-item{
+            border-bottom:1px solid #ddd;
+            padding:8px 0;
+        }
+        #exportCsvBtn{
+            margin-left:10px;
+            background:#2b6cb0;
+            color:white;
+        }
+        #exportCsvBtn:disabled{
+            background:#a4b9d8;
+        }
+    </style>
+</head>
+<body>
+    <h2>🌿 MobileNetV2轻量化网络 · 三种叶子图片上传识别（黄栌 / 小叶黄杨 / 紫叶李）</h2>
+
+    <!-- 单图上传区域 -->
+    <div class="upload-box" id="upload-area">
+        <span class="tip-text" id="text-tip">点击上传 / 手机拍照（jpg/png RGB彩色叶片图）</span>
+        <img id="preview-img">
+        <video id="camera-view" autoplay playsinline></video>
+        <canvas id="shoot-canvas"></canvas>
+        <input type="file" id="file-input" accept=".jpg,.png,.jpeg,image/*" >
+    </div>
+
+    <div class="camera-btn-group">
+        <button class="camera-btn" id="open-camera-btn">打开电脑摄像头</button>
+        <button class="shoot-btn" id="shoot-btn">拍摄照片</button>
+    </div>
+
+    <div class="btn-group">
+        <button id="predictBtn" disabled>识别叶子</button>
+        <button id="clearBtn">清空</button>
+    </div>
+
+    <div id="init-tip">上传彩色叶片图片后点击识别，基于MobileNetV2轻量化模型输出分类与置信度</div>
+
+    <div class="info-area">
+        <div class="info-row">
+            <div class="info-label">真实类别：</div>
+            <input class="info-input" id="realLabel" placeholder="请输入">
+        </div>
+        <div class="info-row">
+            <div class="info-label">预测类别：</div>
+            <div class="info-text" id="predLabel">--</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">置信度：</div>
+            <div class="info-text" id="confValue">--</div>
+        </div>
+    </div>
+
+    <div class="result-card" id="resultCard">
+        <div class="result-title" id="mainResultText">识别结果：--，置信度 --%</div>
+        <h3 style="margin-bottom:20px;">前三匹配类别：</h3>
+        <div class="three-col-wrap">
+            <div class="col-item">
+                <img class="col-img" id="img0" alt="">
+                <div class="col-name" id="name0">--</div>
+                <div class="col-conf" id="conf0">--%</div>
+            </div>
+            <div class="col-item">
+                <img class="col-img" id="img1" alt="">
+                <div class="col-name" id="name1">--</div>
+                <div class="col-conf" id="conf1">--%</div>
+            </div>
+            <div class="col-item">
+                <img class="col-img" id="img2" alt="">
+                <div class="col-name" id="name2">--</div>
+                <div class="col-conf" id="conf2">--%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 批量处理模块 ========== -->
+    <div class="batch-block">
+        <div class="batch-title">批量处理：批量上传与结果导出功能</div>
+        <input type="file" id="batchUpload" multiple accept=".jpg,.jpeg,.png">
+        <button id="batchPredictBtn">批量识别全部图片</button>
+        <button id="exportCsvBtn" disabled>导出CSV识别结果</button>
+
+        <div id="batchResultBox">
+            <h4>批量识别汇总结果</h4>
+            <div id="batchResultList"></div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const previewImg = document.getElementById('preview-img');
+        const textTip = document.getElementById('text-tip');
+        const predictBtn = document.getElementById('predictBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const initTip = document.getElementById('init-tip');
+        const realLabelInput = document.getElementById('realLabel');
+        const predLabelDom = document.getElementById('predLabel');
+        const confValueDom = document.getElementById('confValue');
+        let selectedFile = null;
+
+        // 摄像头DOM
+        const cameraView = document.getElementById('camera-view');
+        const shootCanvas = document.getElementById('shoot-canvas');
+        const shootCtx = shootCanvas.getContext('2d');
+        const openCameraBtn = document.getElementById('open-camera-btn');
+        const shootBtn = document.getElementById('shoot-btn');
+        let mediaStream = null;
+
+        // 结果卡片DOM
+        const resultCard = document.getElementById('resultCard');
+        const mainResultText = document.getElementById('mainResultText');
+        const colImg = [document.getElementById('img0'), document.getElementById('img1'), document.getElementById('img2')];
+        const colName = [document.getElementById('name0'), document.getElementById('name1'), document.getElementById('name2')];
+        const colConf = [document.getElementById('conf0'), document.getElementById('conf1'), document.getElementById('conf2')];
+
+        // 批量全局变量
+        let globalCsvText = "";
+        const batchUpload = document.getElementById("batchUpload");
+        const batchPredictBtn = document.getElementById("batchPredictBtn");
+        const exportCsvBtn = document.getElementById("exportCsvBtn");
+        const batchResultBox = document.getElementById("batchResultBox");
+        const batchResultList = document.getElementById("batchResultList");
+
+        // ===================== 本地图片路径配置 =====================
+        const leafImgMap = {
+            "黄栌": "/static/img/huanglu.jpg",
+            "小叶黄杨": "/static/img/xiaoyehuangyang.jpg",
+            "紫叶李": "/static/img/ziyeli.jpg"
+        };
+
+        // 单图上传逻辑
+        uploadArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            selectedFile = e.target.files[0];
+            if (!selectedFile) return;
+            renderPreview(selectedFile);
+        });
+        function renderPreview(file) {
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                previewImg.src = ev.target.result;
+                previewImg.style.display = "block";
+                textTip.style.display = "none";
+                cameraView.style.display = "none";
+                predictBtn.disabled = false;
+                resetAllInfo();
+            }
+            reader.readAsDataURL(file);
+        }
+        function resetAllInfo(){
+            initTip.style.display = "block";
+            resultCard.style.display = "none";
+            realLabelInput.value = "";
+            predLabelDom.innerText = "--";
+            confValueDom.innerText = "--";
+            for(let i=0;i<3;i++){
+                colImg[i].src = "";
+                colName[i].innerText = "--";
+                colConf[i].innerText = "--%";
+            }
+        }
+        clearBtn.addEventListener('click', () => {
+            fileInput.value = "";
+            previewImg.style.display = "none";
+            cameraView.style.display = "none";
+            textTip.style.display = "block";
+            selectedFile = null;
+            predictBtn.disabled = true;
+            shootBtn.style.display = "none";
+            resetAllInfo();
+            if(mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+        });
+        // 单图识别请求
+        predictBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            initTip.innerHTML = "识别中，请稍候...";
+            const formData = new FormData();
+            formData.append("leaf_img", selectedFile);
+            try {
+                const res = await fetch("/predict", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.error) {
+                    initTip.innerHTML = `<span style="color:red">错误：${data.error}</span>`;
+                    resultCard.style.display = "none";
+                    predLabelDom.innerText = "--";
+                    confValueDom.innerText = "--";
+                    return;
+                }
+                predLabelDom.innerText = data.prediction;
+                const confPercent = (data.confidence * 100).toFixed(2) + "%";
+                confValueDom.innerText = confPercent;
+                initTip.style.display = "none";
+                resultCard.style.display = "block";
+                mainResultText.innerText = `识别结果：${data.prediction}，置信度 ${confPercent}`;
+                data.top3.forEach((item, idx) => {
+                    const name = item.leaf_name;
+                    colName[idx].innerText = name;
+                    colConf[idx].innerText = (item.confidence * 100).toFixed(2) + "%";
+                    colImg[idx].src = leafImgMap[name];
+                })
+            } catch (err) {
+                initTip.innerHTML = `<span style="color:red">请求失败，请检查后端服务</span>`;
+                resultCard.style.display = "none";
+                predLabelDom.innerText = "--";
+                confValueDom.innerText = "--";
+            }
+        });
+        // 摄像头逻辑
+        openCameraBtn.addEventListener('click', async () => {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({video: { facingMode: "environment" }});
+                cameraView.srcObject = mediaStream;
+                cameraView.style.display = "block";
+                textTip.style.display = "none";
+                previewImg.style.display = "none";
+                shootBtn.style.display = "inline-block";
+                shootCanvas.width = 320;
+                shootCanvas.height = 200;
+            } catch (err) {
+                alert("无法调用摄像头：\n1. 确认电脑有内置/外接摄像头；\n2. 线上网站必须HTTPS；\n3. 浏览器已授予相机权限");
+                console.error(err);
+            }
+        });
+        shootBtn.addEventListener('click', () => {
+            shootCtx.drawImage(cameraView, 0, 0, shootCanvas.width, shootCanvas.height);
+            shootCanvas.toBlob((blob) => {
+                selectedFile = new File([blob], "camera_leaf.jpg", { type: "image/jpeg" });
+                renderPreview(selectedFile);
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+                shootBtn.style.display = "none";
+            }, "image/jpeg", 0.92);
+        });
+
+        // ===================== 批量识别JS逻辑 =====================
+        batchPredictBtn.onclick = async function(){
+            const files = batchUpload.files;
+            if(files.length === 0){
+                alert("请先选择多张图片文件！");
+                return;
+            }
+            let formData = new FormData();
+            for(let f of files){
+                formData.append("leaf_batch_img", f);
+            }
+            let res = await fetch("/api/batch_predict", {
+                method:"POST",
+                body:formData
+            });
+            let data = await res.json();
+            if(data.error){
+                alert("批量识别失败："+data.error);
+                return;
+            }
+            // 缓存CSV文本用于导出
+            globalCsvText = data.csv_text;
+            exportCsvBtn.disabled = false;
+            // 渲染批量结果列表
+            batchResultBox.style.display = "block";
+            batchResultList.innerHTML = "";
+            data.batch_data.forEach(item=>{
+                let html = `
+                    <div class="batch-item">
+                        <p>文件名：${item.file_name}</p>
+                        <p>最优识别：${item.pred_leaf}，置信度：${(item.confidence*100).toFixed(2)}%</p>
+                        <p>全部类别概率：
+                            ${item.top3.map(t=> t.name + " " + (t.conf*100).toFixed(2)+"%").join(" / ")}
+                        </p>
+                    </div>
+                `;
+                batchResultList.innerHTML += html;
+            })
+        }
+        // 导出CSV按钮逻辑
+        exportCsvBtn.onclick = async function(){
+            let formData = new FormData();
+            formData.append("csv_text", globalCsvText);
+            const res = await fetch("/download_csv", {
+                method:"POST",
+                body:formData
+            });
+            const blob = await res.blob();
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "叶片批量识别结果.csv";
+            a.click();
+        }
+    </script>
+</body>
+</html>
